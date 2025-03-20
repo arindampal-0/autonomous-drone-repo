@@ -19,10 +19,9 @@ def health_route():
 async def websocket_endpoint(websocket: WebSocket):
     """websocket handler"""
     await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        print(f"Message text was: {data}")
-        await websocket.send_text(f"Message text was: {data}")
+    async for message in websocket.iter_text():
+        print(f"Message text was: {message}")
+        await websocket.send_text(f"Message text was: {message}")
 
 
 app.mount("/api", api, name="api")

@@ -2,6 +2,8 @@
 ## Resources
 - https://fastapi.tiangolo.com/tutorial/
 - https://fastapi.tiangolo.com/#installation
+- https://fastapi.tiangolo.com/advanced/websockets/
+- https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
 
 ## Setup (Ubuntu)
 Create and activate virtual environment
