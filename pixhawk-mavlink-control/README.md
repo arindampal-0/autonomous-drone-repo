@@ -1,4 +1,7 @@
 # Pixhawk mavlink control
+## Resources
+- https://mavlink.io/en/mavgen_python/
+- https://www.ardusub.com/developers/pymavlink.html
 
 ## Setup (Ubuntu)
 
@@ -23,11 +26,44 @@ pip install -r requirements.txt
 
 Run the code
 ```shell
-python3 main.py
+python3 main.py [device_connection_string]
+
+# usually
+python3 main.py /dev/ttyACM0
 ```
+
+## Setup (Windows)
+Create a virtual environment
+```powershell
+python -m venv .venv
+.venv/Scripts/Activate.ps1
+```
+
+Make sure all the following commands are run after activating the virtual environment.
+
+Install dependencies
+```powershell
+pip install -r requirements.txt
+```
+
+Run the code
+```powershell
+python main.py [device_connection_string]
+
+# eg
+python main.py COM5
+```
+Check `Device manager` on Windows to check which COM port the pixhawk is connected to
 
 ## Run using docker
 ```shell
 docker build --no-cache -t mavlink-py-image .
-docker run -it --rm -v ./:/app mavlink-py-image
+docker run -it --rm -v ./:/app --device=/dev/ttyACM0 mavlink-py-image
+```
+
+```shell
+python3 main.py [device_connection_string]
+
+# usually
+python3 main.py /dev/ttyACM0
 ```
