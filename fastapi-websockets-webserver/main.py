@@ -1,11 +1,13 @@
 """main file"""
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
+app.mount("/", StaticFiles(directory="public", html=True), name="static")
 
-@app.get("/")
+@app.get("/health")
 def root():
-    """root handler"""
-    return {"msg": "Hello, World!"}
+    """health route handler"""
+    return {"status": "OK"}
