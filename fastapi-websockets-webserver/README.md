@@ -42,7 +42,7 @@ pip install -r requirements.txt
 
 Run the program
 ```powershell
-fastapi main:app --host 0.0.0.0 --port 8000
+fastapi dev main.py --host 0.0.0.0 --port 8000
 ```
 
 ## Run in docker container
@@ -53,6 +53,10 @@ docker run --rm -it -p 8000:8000 -v ./:/app fastapi-server
 
 ```shell
 uvicorn main:app --host 0.0.0.0 --port 8000
+
+# or
+
+python3 main.py
 ```
 
 ## Running tests
