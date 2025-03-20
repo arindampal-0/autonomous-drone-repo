@@ -1,12 +1,11 @@
 """main file"""
 
-import sys
+from fastapi import FastAPI
 
-def main():
-    """main function"""
-    print("FastAPI Websockets webserver")
+app = FastAPI()
 
-    return 0
 
-if __name__ == "__main__":
-    sys.exit(main())
+@app.get("/")
+def root():
+    """root handler"""
+    return {"msg": "Hello, World!"}
