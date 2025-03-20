@@ -3,11 +3,17 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-app = FastAPI()
+app = FastAPI(title="app")
 
-app.mount("/", StaticFiles(directory="public", html=True), name="static")
+api = FastAPI(title="api")
 
-@app.get("/health")
-def root():
+
+@api.get("/health")
+def health_route():
     """health route handler"""
     return {"status": "OK"}
+
+
+app.mount("/api", api, name="api")
+
+app.mount("/", StaticFiles(directory="public", html=True), name="static")
