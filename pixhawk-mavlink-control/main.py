@@ -74,7 +74,7 @@ def main(args):
     print("Arming motors.")
 
     print("Waiting for the vehicle to arm...")
-    master.motor_armed_wait()
+    master.motors_armed_wait()
     print("Armed!")
 
     # Disarm
@@ -82,7 +82,7 @@ def main(args):
     print("Disarming motors.")
 
     print("Waiting for the vehicle to disarm...")
-    master.motor_disarmed_wait()
+    master.motors_disarmed_wait()
     print("Motors disarmed!")
 
     return 0
