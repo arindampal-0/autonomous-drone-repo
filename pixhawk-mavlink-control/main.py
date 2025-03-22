@@ -31,6 +31,36 @@ def main(args):
     # make sure the connection is valid
     master.wait_heartbeat()
 
+    # change mode to 'STABILIZE'
+    mode = "STABILIZE"
+
+    if mode not in master.mode_mapping():
+        print(f"Unknown mode: {mode}", file=sys.stderr)
+        print("Try: ", list(master.mode_mapping().keys()), file=sys.stderr)
+        return 1
+
+    ## Get mode ID
+    mode_id = master.mode_mapping()[mode]
+    master.set_mode(mode_id)
+
+    print("Waiting for mode change ACK...")
+    while True:
+        ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True)
+        print(ack_msg.message_type)
+        print(ack_msg.get_type())
+        print(ack_msg.get_fieldnames())
+
+        ack_msg = ack_msg.to_dict()
+
+        ## Waiting if acknowledged command is not `set_mode` 
+        if ack_msg["command"] != mavutil.mavlink.MAV_CMD_DO_SET_MODE:
+            continue
+
+        ## Print ACK result
+        print(mavutil.mavlink.enums["MAV_RESULT"][ack_msg["result"]].description)
+        break
+    print(f"Mode changed to {mode}")
+
     # Arm
     master.arducopter_arm()
     print("Arming motors.")
