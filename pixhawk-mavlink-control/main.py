@@ -85,6 +85,8 @@ def main(args):
     master.motors_disarmed_wait()
     print("Motors disarmed!")
 
+    master.close()
+
     return 0
 
 
