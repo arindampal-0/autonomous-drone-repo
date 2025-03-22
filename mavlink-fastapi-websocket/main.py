@@ -1,5 +1,7 @@
 """main file"""
 
+from typing import Union
+
 import sys
 from enum import Enum
 
@@ -8,7 +10,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
 from pymavlink import mavutil
 
-master: mavutil.mavserial | None = None
+master: Union[mavutil.mavserial, None] = None
 
 
 class WebSocketSendMsgType(str, Enum):
@@ -29,7 +31,7 @@ class WebSocketRecvMsgType(str, Enum):
     STOP_MOTOR = "STOP_MOTOR"
 
     @staticmethod
-    def from_str(msg_type: str) -> "WebSocketRecvMsgType" | None:
+    def from_str(msg_type: str) -> Union["WebSocketRecvMsgType", None]:
         """get recieve message type"""
         for t in WebSocketRecvMsgType:
             if t.name == msg_type:
@@ -45,7 +47,7 @@ class FlightMode(str, Enum):
     NONE = "NONE"
 
     @staticmethod
-    def from_str(mode: str) -> "FlightMode" | None:
+    def from_str(mode: str) -> Union["FlightMode", None]:
         """get flight mode"""
         for m in FlightMode:
             if m.name == mode:

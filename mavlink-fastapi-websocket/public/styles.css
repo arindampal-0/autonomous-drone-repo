@@ -3,14 +3,63 @@
   line-height: 1.5;
   font-weight: 400;
 
+  --foreground-dark: rgba(255, 255, 255, 0.87);
+  --background-dark: #242424;
+
+  --foreground-light: #213547;
+  --background-light: white;
+
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: var(--foreground-dark);
+  background-color: var(--background-dark);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  cursor: pointer;
+}
+
+header {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: center;
+  gap: 1em;
+}
+
+div#connection-status {
+  text-align: center;
+}
+
+div#mode-change {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+button#refresh {
+  background: transparent;
+  border: none;
+  color: var(--foreground-dark);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4em;
+
+  span {
+    font-size: 1.5em;
+  }
 }
 
 .input-holder {
@@ -19,9 +68,42 @@
   gap: 1em;
 }
 
+#run-motor {
+  form {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    gap: 0.4em;
+  }
+
+  #speed-ranges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+
+    input[type="range"] {
+      width: 200px;
+      margin: 0;
+    }
+
+    datalist {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      writing-mode: vertical-lr;
+      width: 200px;
+      font-size: .8em;
+    }
+  }
+}
+
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: var(--foreground-light);
+    background-color: var(--background-light);
+  }
+
+  button#refresh {
+    color: var(--foreground-light);
   }
 }
