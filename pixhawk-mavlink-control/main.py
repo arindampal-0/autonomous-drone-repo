@@ -31,6 +31,22 @@ def main(args):
     # make sure the connection is valid
     master.wait_heartbeat()
 
+    # Arm
+    master.arducopter_arm()
+    print("Arming motors.")
+
+    print("Waiting for the vehicle to arm...")
+    master.motor_armed_wait()
+    print("Armed!")
+
+    # Disarm
+    master.arducopter_disarm()
+    print("Disarming motors.")
+
+    print("Waiting for the vehicle to disarm...")
+    master.motor_disarmed_wait()
+    print("Motors disarmed!")
+
     return 0
 
 
