@@ -1,0 +1,6 @@
+pyserial
+pymavlink
+fastapi[standard]
+uvicorn
+httpx
+pytest
