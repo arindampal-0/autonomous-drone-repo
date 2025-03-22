@@ -1,6 +1,7 @@
 """main file"""
 
 import sys
+import time
 
 from pymavlink import mavutil
 
@@ -52,7 +53,7 @@ def main(args):
 
         ack_msg = ack_msg.to_dict()
 
-        ## Waiting if acknowledged command is not `set_mode` 
+        ## Waiting if acknowledged command is not `set_mode`
         if ack_msg["command"] != mavutil.mavlink.MAV_CMD_DO_SET_MODE:
             continue
 
@@ -60,6 +61,13 @@ def main(args):
         print(mavutil.mavlink.enums["MAV_RESULT"][ack_msg["result"]].description)
         break
     print(f"Mode changed to {mode}")
+
+    # Running the servo motors
+    master.set_servo(1 + 8, 1100)
+    time.sleep(5)
+
+    master.set_servo(1 + 8, 0)
+    time.sleep(1)
 
     # Arm
     master.arducopter_arm()
