@@ -29,6 +29,7 @@ class WebSocketRecvMsgType(str, Enum):
     DISARM = "DISARM"
     RUN_MOTOR = "RUN_MOTOR"
     STOP_MOTOR = "STOP_MOTOR"
+    CLOSE_CONNECTION = "CLOSE_CONNECTION"
 
     @staticmethod
     def from_str(msg_type: str) -> Union["WebSocketRecvMsgType", None]:
@@ -75,7 +76,7 @@ async def send_state(ws: WebSocket):
     )
 
 
-async def connect(device_connection_string: str, ws: WebSocket):
+async def connect(device_connection_string: str):
     """connect to pixhawk"""
     if not isinstance(ws, WebSocket):
         print("ws should be instance of WebSocket.", file=sys.stderr)
@@ -89,19 +90,14 @@ async def connect(device_connection_string: str, ws: WebSocket):
     master.wait_heartbeat()
 
     ardupilot_state["connected"] = True
-    await send_state(ws)
 
 
-async def change_flight_mode(mode: FlightMode, ws: WebSocket):
+async def change_flight_mode(mode: FlightMode):
     """change flight mode"""
     global master
 
     if not master:
         print("Ardupilot not connected.", file=sys.stderr)
-        return
-
-    if not isinstance(ws, WebSocket):
-        print("ws should be instance of WebSocket.", file=sys.stderr)
         return
 
     if mode.name not in master.mode_mapping():
@@ -132,19 +128,14 @@ async def change_flight_mode(mode: FlightMode, ws: WebSocket):
     print(f"Mode changed to {mode.name}")
 
     ardupilot_state["mode"] = mode
-    await send_state(ws)
 
 
-async def arm_copter(ws: WebSocket):
+async def arm_copter():
     """arming the copter"""
     global master
 
     if not master:
         print("Ardupilot not connected.", file=sys.stderr)
-        return
-
-    if not isinstance(ws, WebSocket):
-        print("ws should be instance of WebSocket.", file=sys.stderr)
         return
 
     master.arducopter_arm()
@@ -155,19 +146,14 @@ async def arm_copter(ws: WebSocket):
     print("Armed!")
 
     ardupilot_state["armed"] = True
-    await send_state(ws)
 
 
-async def disarm_copter(ws: WebSocket):
+async def disarm_copter():
     """disarming the copter"""
     global master
 
     if not master:
         print("Ardupilot not connected.", file=sys.stderr)
-        return
-
-    if not isinstance(ws, WebSocket):
-        print("ws should be instance of WebSocket.", file=sys.stderr)
         return
 
     master.arducopter_disarm()
@@ -178,19 +164,14 @@ async def disarm_copter(ws: WebSocket):
     print("Motors disarmed!")
 
     ardupilot_state["armed"] = False
-    await send_state(ws)
 
 
-async def run_motors(speed: int, ws: WebSocket):
+async def run_motors(speed: int):
     """running motors"""
     global master
 
     if not master:
         print("Ardupilot not connected.", file=sys.stderr)
-        return
-
-    if not isinstance(ws, WebSocket):
-        print("ws should be instance of WebSocket.", file=sys.stderr)
         return
 
     if not isinstance(speed, int):
@@ -205,10 +186,9 @@ async def run_motors(speed: int, ws: WebSocket):
 
     ardupilot_state["motor_spinning"] = True
     ardupilot_state["motor_speed"] = speed
-    await send_state(ws)
 
 
-async def stop_motors(ws: WebSocket):
+async def stop_motors():
     """stop motors from spinning"""
     global master
 
@@ -216,15 +196,21 @@ async def stop_motors(ws: WebSocket):
         print("Ardupilot not connected.", file=sys.stderr)
         return
 
-    if not isinstance(ws, WebSocket):
-        print("ws should be instance of WebSocket.", file=sys.stderr)
-        return
-
     master.set_servo(1 + 8, 0)
 
     ardupilot_state["motor_spinning"] = False
     ardupilot_state["motor_speed"] = 0
-    await send_state(ws)
+
+async def close_connection():
+    """close connection to ardupilot"""
+    global master
+
+    if not master:
+        print("Ardupilot not connection.", file=sys.stderr)
+        return
+
+    master.close()
+    master = None
 
 
 app = FastAPI(title="app")
@@ -269,7 +255,7 @@ async def handle_websocket_json_messages(message: dict, ws: WebSocket):
             )
             return
 
-        await connect(message["device_connection_string"], ws)
+        await connect(message["device_connection_string"])
     elif msg_type == WebSocketRecvMsgType.MODE_CHANGE:
         if "mode" not in message:
             print(
@@ -288,11 +274,11 @@ async def handle_websocket_json_messages(message: dict, ws: WebSocket):
             print(f"'{message['mode']} is an invalid flight mode.", file=sys.stderr)
             return
 
-        await change_flight_mode(mode, ws)
+        await change_flight_mode(mode)
     elif msg_type == WebSocketRecvMsgType.ARM:
-        await arm_copter(ws)
+        await arm_copter()
     elif msg_type == WebSocketRecvMsgType.DISARM:
-        await disarm_copter(ws)
+        await disarm_copter()
     elif msg_type == WebSocketRecvMsgType.RUN_MOTOR:
         if "speed" not in message:
             print(
@@ -305,9 +291,11 @@ async def handle_websocket_json_messages(message: dict, ws: WebSocket):
             print("speed property should be an integer.", file=sys.stderr)
             return
 
-        await run_motors(message["speed"], ws)
+        await run_motors(message["speed"])
     elif msg_type == WebSocketRecvMsgType.STOP_MOTOR:
-        await stop_motors(ws)
+        await stop_motors()
+    elif msg_type == WebSocketRecvMsgType.CLOSE_CONNECTION:
+        await close_connection()
 
 
 @app.websocket("/ws")
@@ -315,10 +303,8 @@ async def websocket_endpoint(websocket: WebSocket):
     """websocket handler"""
     await websocket.accept()
     async for message in websocket.iter_json():
-        # print(f"Message text was: {message}")
-        # await websocket.send_text(f"Message text was: {message}")
-
         await handle_websocket_json_messages(message, websocket)
+        await send_state(websocket)
 
 
 app.mount("/api", api, name="api")
