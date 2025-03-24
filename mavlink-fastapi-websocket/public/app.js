@@ -89,6 +89,22 @@ function updateUIState() {
             currentModeSpan.innerText = ardupilotState.mode;
             currentModeSpan.style.color = "white";
         }
+    } else {
+        console.error("Could not find #current-mode.");
+    }
+
+    // update armed status UI
+    if (armButton instanceof HTMLButtonElement) {
+        armButton.innerText = ardupilotState.armed ? "Diarm" : "Arm";
+    } else {
+        console.error("Could not find #arm-button.");
+    }
+
+    if (armStatusSpan instanceof HTMLSpanElement) {
+        armStatusSpan.innerText = ardupilotState.armed ? "Armed" : "Disarmed";
+        armStatusSpan.style.color = ardupilotState.armed ? "green" : "red";
+    } else {
+        console.error("Could not find #arm-status.");
     }
 }
 
@@ -134,12 +150,30 @@ function sendConnectionMessage(connect, deviceConnectionString = "") {
  */
 function sendModeChangeMessage(mode) {
     if (typeof mode != "string") {
-        console.error("'mode' should be a string.");
+        console.error("'mode' parameter should be a string.");
         return;
     }
 
     if (ws.OPEN) {
         ws.send(JSON.stringify({ msg_type: "MODE_CHANGE", mode }));
+    } else {
+        console.error("WS connection is closed.");
+    }
+}
+
+/**
+ * Send message to arm or disarm the motor
+ * @param {boolean} arm arm the motor (true), disarm the motor (false)
+ */
+function sendArmMessage(arm) {
+    if (typeof arm != "boolean") {
+        console.error("'arm' parameter should be a boolean.");
+        return;
+    }
+
+    if (ws.OPEN) {
+        const message = { msg_type: arm ? "ARM" : "DISARM" }
+        ws.send(JSON.stringify(message));
     } else {
         console.error("WS connection is closed.");
     }
@@ -180,21 +214,38 @@ if (modeChangeForm instanceof HTMLFormElement) {
     modeChangeForm.addEventListener("submit", function(event) {
         event.preventDefault();
 
-        if (ardupilotState.connected) {
-            if (modeSelect instanceof HTMLSelectElement) {
-                const mode = modeSelect.value;
-                sendModeChangeMessage(mode);
-                modeChangeForm.reset();
-            } else {
-                console.error("Could not get #mode-select from dom.");
-                return;
-            }
-        } else {
-            console.error("Ardupilot not connnected.");
+        if (!ardupilotState.connected) {
+            console.error("Ardupilot not connected!");
+            return;
         }
-    })
+
+        if (modeSelect instanceof HTMLSelectElement) {
+            const mode = modeSelect.value;
+            sendModeChangeMessage(mode);
+            modeChangeForm.reset();
+        } else {
+            console.error("Could not get #mode-select from dom.");
+            return;
+        }
+    });
 } else {
     console.error("Could not get #mode-change-form from dom.");
+}
+
+if (armButton instanceof HTMLButtonElement) {
+    armButton.addEventListener("click", function() {
+        if (!ardupilotState.connected) {
+            console.error("Ardupilot not connected!");
+            return;
+        }
+
+        if (ardupilotState.mode === "NONE") {
+            console.error("Flight mode is not selected.");
+            return;
+        }
+
+        sendArmMessage(!ardupilotState.armed);
+    });
 }
 
 ws.addEventListener("open", function(event) {
