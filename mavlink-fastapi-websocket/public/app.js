@@ -259,7 +259,9 @@ if (refreshStateButton instanceof HTMLButtonElement) {
         const message = { msg_type: "STATE" }
 
         if (ws.OPEN) {
-            ws.send(JSON.stringify({msg_type}))
+            ws.send(JSON.stringify(message))
+        } else {
+            console.error("WS connection is closed.");
         }
     });
 } else {
