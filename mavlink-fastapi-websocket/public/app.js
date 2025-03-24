@@ -39,6 +39,12 @@ const armStatusSpan = document.getElementById("arm-status");
 const runMotorForm = document.getElementById("run-motor-form");
 // console.log(runMotorForm);
 
+const runMotorButton = document.querySelector("#run-motor-form button[type='submit']");
+// console.log(runMotorButton);
+
+const stopMotorButton = document.getElementById("stop-motor-button");
+// console.log(stopMotorButton);
+
 const speedRangeInput = document.getElementById("motor-speed");
 // console.log(speedRangeInput);
 
@@ -106,7 +112,41 @@ function updateUIState() {
     } else {
         console.error("Could not find #arm-status.");
     }
+
+    // update run motor UI
+    if (runMotorButton instanceof HTMLButtonElement) {
+        runMotorButton.disabled = ardupilotState.motorSpinning;
+    } else {
+        console.error("Could not find run-motor-button in dom");
+    }
+
+    if (stopMotorButton instanceof HTMLButtonElement) {
+        stopMotorButton.disabled = !ardupilotState.motorSpinning;
+    } else {
+        console.error("Could not find #stop-motor-button in dom");
+    }
+
+    if (speedRangeInput instanceof HTMLInputElement) {
+        speedRangeInput.value = ardupilotState.motorSpeed;
+    } else {
+        console.error("Could not find speed-range-input in dom.");
+    }
+
+    if (speedNumberInput instanceof HTMLInputElement) {
+        speedNumberInput.value = ardupilotState.motorSpeed;
+    } else {
+        console.error("Could not find speed-number-input in dom.");
+    }
+
+    if (motorSpinningStatusSpan instanceof HTMLSpanElement) {
+        motorSpinningStatusSpan.innerText = ardupilotState.motorSpinning ? "Spinning" : "Not spinning";
+        motorSpinningStatusSpan.style.color = ardupilotState.motorSpinning ? "green" : "red";
+    } else {
+        console.error("Could not find motor-spinning-status in dom.");
+    }
 }
+ 
+updateUIState();
 
 /**
  * send connection message
@@ -179,6 +219,39 @@ function sendArmMessage(arm) {
     }
 }
 
+/**
+ * Send message to spin motor with a speed
+ * @param {number} speed speed of motor (1100 <= speed <= 1800)
+ */
+function sendSpinMotorMessage(speed) {
+    if (typeof speed != "number") {
+        console.error("'speed' parameter should be a number.");
+        return;
+    }
+
+    if (speed < 1100 && speed > 1800) {
+        console.error("'speed' should be between 1100 and 1800.");
+        return;
+    }
+
+    if (ws.OPEN) {
+        ws.send(JSON.stringify({ msg_type: "RUN_MOTOR", speed }));
+    } else {
+        console.error("WS connection is closed.");
+    }
+}
+
+/**
+ * Send message to stop the motor
+ */
+function sendStopMotorMessage() {
+    if (ws.OPEN) {
+        ws.send(JSON.stringify({ msg_type: "STOP_MOTOR" }));
+    } else {
+        console.error("WS connection is closed.");
+    }
+}
+
 
 if (refreshStateButton instanceof HTMLButtonElement) {
     refreshStateButton.addEventListener("click", function() {
@@ -240,12 +313,96 @@ if (armButton instanceof HTMLButtonElement) {
         }
 
         if (ardupilotState.mode === "NONE") {
-            console.error("Flight mode is not selected.");
+            console.error("Flight mode is not set.");
             return;
         }
 
         sendArmMessage(!ardupilotState.armed);
     });
+} else {
+    console.error("Could not find #arm-button in the dom.");
+}
+
+if (speedRangeInput instanceof HTMLInputElement) {
+    speedRangeInput.addEventListener("change", function(event) {
+        if (speedNumberInput instanceof HTMLInputElement) {
+            speedNumberInput.value = event.target.value;
+        } else {
+            console.error("Could not find #speed-number-input in the dom.");
+        }
+    });
+} else {
+    console.error("Could not find #speed-range-input in the dom.");
+}
+
+if(speedNumberInput instanceof HTMLInputElement) {
+    speedNumberInput.addEventListener("change", function(event) {
+        if (speedRangeInput instanceof HTMLInputElement) {
+            speedRangeInput.value = event.target.value;
+        } else {
+            console.error("Could not find #speed-range-input in the dom.");
+        }
+    });
+} else {
+    console.error("Could not find #speed-number-input in the dom.");
+}
+
+if (runMotorForm instanceof HTMLFormElement) {
+    runMotorForm.addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        if (!ardupilotState.connected) {
+            console.error("Ardupilot not connected!");
+            return;
+        }
+
+        if (ardupilotState.mode === "None") {
+            console.error("Flight mode is not set.");
+            return;
+        }
+
+        if (!ardupilotState.armed) {
+            console.error("motors are not armed.");
+            return;
+        }
+
+        if (speedNumberInput instanceof HTMLInputElement) {
+            const speed = speedNumberInput.value;
+            sendSpinMotorMessage(speed);
+        } else {
+            console.error("Could not find #speed-number-input in the dom.");
+        }
+    })
+} else {
+    console.error("Could not find #run-motor-form in the dom.");
+}
+
+if (stopMotorButton instanceof HTMLButtonElement) {
+    stopMotorButton.addEventListener("click", function() {
+        if (!ardupilotState.connected) {
+            console.error("Ardupilot not connected!");
+            return;
+        }
+
+        if (ardupilotState.mode === "None") {
+            console.error("Flight mode is not set.");
+            return;
+        }
+
+        if (!ardupilotState.armed) {
+            console.error("motors are not armed.");
+            return;
+        }
+
+        if (!ardupilotState.motorSpinning) {
+            console.log("Motor is not spinning!");
+            return;
+        }
+
+        sendStopMotorMessage();
+    });
+} else {
+    console.error("Could not find #stop-motor-button in the dom.");
 }
 
 ws.addEventListener("open", function(event) {

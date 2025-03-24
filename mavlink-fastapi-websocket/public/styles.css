@@ -23,6 +23,10 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: default;
+}
+
 header {
   display: flex;
   flex-direction: row;
@@ -83,6 +87,10 @@ span#arm-status {
     flex-direction: row;
     align-items: start;
     gap: 0.4em;
+
+    #stop-motor-button {
+      color: red;
+    }
   }
 
   #speed-ranges {
