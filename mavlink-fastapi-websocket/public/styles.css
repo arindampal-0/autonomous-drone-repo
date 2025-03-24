@@ -35,20 +35,10 @@ main {
   flex-direction: column;
   justify-content: start;
   align-items: center;
-  gap: 1em;
+  gap: 1.5em;
 }
 
-div#connection-status {
-  text-align: center;
-}
-
-div#mode-change {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-button#refresh {
+button#refresh-button {
   background: transparent;
   border: none;
   color: var(--foreground-dark);
@@ -62,13 +52,32 @@ button#refresh {
   }
 }
 
-.input-holder {
+div#connection-status {
+  text-align: center;
+  color: red;
+}
+
+div#mode-change {
   display: flex;
-  flex-direction: row;
-  gap: 1em;
+  flex-direction: column;
+  align-items: center;
+
+  span#current-mode {
+    color: red;
+  }
+}
+
+span#arm-status {
+  color: red;
 }
 
 #run-motor {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: center;
+  gap: .4em;
+
   form {
     display: flex;
     flex-direction: row;
@@ -93,6 +102,14 @@ button#refresh {
       writing-mode: vertical-lr;
       width: 200px;
       font-size: .8em;
+    }
+  }
+
+  div {
+    text-align: center;
+
+    span#motor-status {
+      color: red;
     }
   }
 }

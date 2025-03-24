@@ -12,7 +12,7 @@
         <h1>Fastapi websocket server</h1>
     </header>
     <main>
-        <button id="refresh" title="refresh state">
+        <button id="refresh-button" title="refresh state">
             <span>Refresh State</span>
             <svg fill="currentColor" height="2em" width="2em" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
                 viewBox="0 0 383.748 383.748" xml:space="preserve">
@@ -26,15 +26,15 @@
                 </g>
             </svg>
         </button>
-        <div id="device-connection">
+        <div>
             <form id="device-connection-string-form">
-                <input name="connection-string" type="text" placeholder="device connection string" required>
+                <input id="device-connection-string-input" name="connection-string" type="text" placeholder="device connection string" required>
                 <button type="submit">Connect</button>
             </form>
             <div id="connection-status">Not Connected</div>
         </div>
         <div id="mode-change">
-            <form>
+            <form id="mode-change-form">
                 <label for="select-mode">Select flight mode:</label>
                 <select name="mode" id="select-mode" required>
                     <option value="">-- Please choose a flight mode --</option>
@@ -42,14 +42,14 @@
                 </select>
                 <button type="submit">Change mode</button>
             </form>
-            <div>Mode: <span>Unknown</span></div>
+            <div>Mode: <span id="current-mode">Unknown</span></div>
         </div>
-        <div id="arm">
-            <button>Arm</button>
-            <span>Status: <span>Disarmed</span></span>
+        <div>
+            <button id="arm-button">Arm</button>
+            <span>Status: <span id="arm-status">Disarmed</span></span>
         </div>
         <div id="run-motor">
-            <form>
+            <form id="run-motor-form">
                 <label for="motor-speed">Motor speed: </label>
                 <div id="speed-ranges">
                     <input type="range" id="motor-speed" name="motor-speed"
@@ -60,12 +60,13 @@
                     </datalist>
                 </div>
                 <input type="number" name="motor-speed" id="motor-speed-value" min="1100" max="1800" step="10" value="1100">
-                <button>Start motor</button>
+                <button type="submit">Start motor</button>
             </form>
+            <div>Motor status: <span id="motor-status">Not spinning</span></div>
         </div>
 
     </main>
 
-    <script src="/app.js"></script>
+    <script defer src="/app.js"></script>
 </body>
 </html>
