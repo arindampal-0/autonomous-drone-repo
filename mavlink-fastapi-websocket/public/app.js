@@ -50,7 +50,7 @@ const motorSpinningStatusSpan = document.getElementById("motor-status");
 
 /** @typedef {"STABILIZE" | "NONE"} FlightMode */
 
-/** @type { {connected: bool, mode: FlightMode, armed: bool, motorSpinning: bool, motorSpeed: number }} */
+/** @type { {connected: boolean, mode: FlightMode, armed: boolean, motorSpinning: boolean, motorSpeed: number }} */
 const ardupilotState = {
     connected: false,
     mode: "NONE",
@@ -79,21 +79,32 @@ function updateUIState() {
     } else {
         console.error("Could not find div #connection-state.")
     }
+
+    // update mode change UI
+    if (currentModeSpan instanceof HTMLSpanElement) {
+        if (ardupilotState.mode == "NONE") {
+            currentModeSpan.innerText = "Unknown";
+            currentModeSpan.style.color = "red";
+        } else {
+            currentModeSpan.innerText = ardupilotState.mode;
+            currentModeSpan.style.color = "white";
+        }
+    }
 }
 
 /**
  * send connection message
- * @param {bool} connect Want to connect or disconnect
+ * @param {boolean} connect Want to connect or disconnect
  * @param {string} deviceConnectionString device connection string
  */
 function sendConnectionMessage(connect, deviceConnectionString = "") {
-    if (!(connect instanceof bool)) {
+    if (typeof connect != "boolean") {
         console.error("'connect' parameter should be a boolean.");
         return;
     }
 
-    if (!(deviceConnectionString instanceof String)) {
-        console.error("'deviceConnectionString' should be a String.");
+    if (typeof deviceConnectionString != "string") {
+        console.error("'deviceConnectionString' should be a string.");
         return;
     }
 
@@ -112,6 +123,23 @@ function sendConnectionMessage(connect, deviceConnectionString = "") {
 
     if (ws.OPEN) {
         ws.send(JSON.stringify(message));
+    } else {
+        console.error("WS connection is closed.");
+    }
+}
+
+/**
+ * Send mode change message
+ * @param {FlightMode} mode flight mode
+ */
+function sendModeChangeMessage(mode) {
+    if (typeof mode != "string") {
+        console.error("'mode' should be a string.");
+        return;
+    }
+
+    if (ws.OPEN) {
+        ws.send(JSON.stringify({ msg_type: "MODE_CHANGE", mode }));
     } else {
         console.error("WS connection is closed.");
     }
@@ -148,6 +176,27 @@ if (deviceConnectionForm instanceof HTMLFormElement) {
     console.error("Could not get #device-connection-string-form from dom.")
 }
 
+if (modeChangeForm instanceof HTMLFormElement) {
+    modeChangeForm.addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        if (ardupilotState.connected) {
+            if (modeSelect instanceof HTMLSelectElement) {
+                const mode = modeSelect.value;
+                sendModeChangeMessage(mode);
+                modeChangeForm.reset();
+            } else {
+                console.error("Could not get #mode-select from dom.");
+                return;
+            }
+        } else {
+            console.error("Ardupilot not connnected.");
+        }
+    })
+} else {
+    console.error("Could not get #mode-change-form from dom.");
+}
+
 ws.addEventListener("open", function(event) {
     console.log("Websocket connection opened!");
 });
@@ -176,7 +225,7 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (!(message.state.connected instanceof bool)) {
+    if (typeof message.state.connected != "boolean") {
         console.error("message.state.connected should be a boolean value.");
         return;
     }
@@ -203,7 +252,7 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (!(message.state.armed instanceof bool)) {
+    if (typeof message.state.armed != "boolean") {
         console.error("message.state.armed should be a boolean value.");
         return;
     }
@@ -213,7 +262,7 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (!(message.state.motor_spinning instanceof bool)) {
+    if (typeof message.state.motor_spinning != "boolean") {
         console.error("message.state.motor_spinning should be a boolean value.");
         return;
     }
@@ -223,8 +272,8 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (!(message.state.motor_speed instanceof number)) {
-        console.error("message.state.motor_speed should be a boolean value.");
+    if (typeof message.state.motor_speed != "number") {
+        console.error("message.state.motor_speed should be a integer value.");
         return;
     }
 
