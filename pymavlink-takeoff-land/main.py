@@ -1,8 +1,29 @@
 """main file"""
 
 import sys
+import time
 
 from pymavlink import mavutil
+
+def wait_for_ack(master, command) -> bool:
+    """wait for ACK"""
+    counter = 0
+    while True:
+        ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
+        ack_msg = ack_msg.to_dict()
+
+        if counter > 5:
+            return False
+
+        if ack_msg["command"] != command:
+            counter += 1
+            continue
+
+        print(mavutil.mavlink.enums["MAV_RESULT"][ack_msg["result"]].description)
+        break
+
+    return True
+
 
 def main(args: list[str]) -> int:
     """main function"""
@@ -41,22 +62,42 @@ def main(args: list[str]) -> int:
     mode_id = master.mode_mapping()[mode]
 
     ## set mode message
-    master.mav.set_mode_send(
+    master.mav.command_long_send(
         master.target_system,
         master.target_component,
         mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
-        0, mode_id, 0, 0, 0, 0, 0)
+        0, mode_id, 0, 0, 0, 0, 0
+    )
     
     ## Wait for ACK
-    while True:
-        ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
-        ack_msg = ack_msg.to_dict()
+    if not wait_for_ack(master, mavutil.mavlink.MAV_CMD_DO_SET_MODE):
+        print("Could not set mode.", file=sys.stderr)
+        return 1
 
-        if ack_msg["command"] != mavutil.mavlink.MAV_CMD_DO_SET_MODE:
-            continue
+    # arm drone
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
+        1, 0, 0, 0, 0, 0, 0
+    )
 
-        print(mavutil.mavlink.enums["MAV_RESULT"][ack_msg["result"]].description)
-        break
+    if not wait_for_ack(master, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM):
+        print("Could not arm the motors.", file=sys.stderr)
+        return 1
+
+    # takeoff to 1 meter
+    takeoff_height = 1
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0,
+        0, 0, 0, 0, 0, 0, takeoff_height
+    )
+
+    # TODO: wait for it to reach height
+
+    time.sleep(10)
 
     return 0
 
