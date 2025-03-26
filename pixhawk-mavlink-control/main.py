@@ -6,6 +6,22 @@ import time
 from pymavlink import mavutil
 
 
+def print_delay(delay: int):
+    """print delay"""
+    if not isinstance(delay, int):
+        print("'delay' parameter should be an integer.", file=sys.stderr)
+        return
+
+    if delay < 1:
+        print("Delay should be an integer greater than 0.", file=sys.stderr)
+        return
+
+    for i in range(delay, -1, -1):
+        print(f"Waiting for {i}", end="\r")
+        time.sleep(1)
+    print()
+
+
 def main(args):
     """main file"""
     print("Pixhawk mavlink control")
@@ -47,9 +63,6 @@ def main(args):
     print("Waiting for mode change ACK...")
     while True:
         ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True)
-        print(ack_msg.message_type)
-        print(ack_msg.get_type())
-        print(ack_msg.get_fieldnames())
 
         ack_msg = ack_msg.to_dict()
 
@@ -62,13 +75,6 @@ def main(args):
         break
     print(f"Mode changed to {mode}")
 
-    # Running the servo motors
-    master.set_servo(1 + 8, 1100)
-    time.sleep(5)
-
-    master.set_servo(1 + 8, 0)
-    time.sleep(1)
-
     # Arm
     master.arducopter_arm()
     print("Arming motors.")
@@ -76,6 +82,13 @@ def main(args):
     print("Waiting for the vehicle to arm...")
     master.motors_armed_wait()
     print("Armed!")
+
+    # Running the servo motors
+    master.set_servo(1 + 8, 1100)
+    print_delay(5)
+
+    master.set_servo(1 + 8, 0)
+    print_delay(3)
 
     # Disarm
     master.arducopter_disarm()
@@ -86,6 +99,7 @@ def main(args):
     print("Motors disarmed!")
 
     master.close()
+    print("Connection closed.")
 
     return 0
 
