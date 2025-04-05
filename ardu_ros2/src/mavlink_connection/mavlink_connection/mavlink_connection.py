@@ -10,7 +10,22 @@ class MavlinkConnection(Node):
     """MavlinkConnection Node"""
     def __init__(self):
         super().__init__("mavlink_connection")
+
+        self.declare_parameter(
+            "device_connection_string", "/dev/ttyACM0", 
+            ParameterDescriptor(description="Device connection COM port."))
+        device_connection_string = self.get_parameter("device_connection_string").get_parameter_value().string_value
+
         self.get_logger().info("Mavlink Connection Node")
+        self.get_logger().info(f"device connection string: {device_connection_string}")
+
+        try:
+            self.master = mavutil.mavlink_connection(device_connection_string)
+            self.master.wait_heartbeat()
+            self.get_logger().info("Connected with Pixhawk.")
+        except SerialException as ex:
+            self.get_logger().error(f"No such device {device_connection_string}")
+            raise SystemExit from ex
 
 
 def main(args=None):

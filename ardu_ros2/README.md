@@ -92,3 +92,8 @@ colcon build --packages-select mavlink_connection
 source install/setup.bash
 ros2 run mavlink_connection mavlink_connection
 ```
+
+Run and pass parameter
+```shell
+ros2 run mavlink_connection mavlink_connection --ros-args -p device_connection_string:=/dev/ttyACM0
+```
