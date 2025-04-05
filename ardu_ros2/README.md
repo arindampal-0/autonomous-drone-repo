@@ -86,6 +86,11 @@ setup(
 
 ```
 
+If you get any error while building, run the following command to install any missing ROS2 packages
+```shell
+rosdep install --from-paths src --ignore-src -r -y
+```
+
 Build and run the node
 ```shell
 colcon build --packages-select mavlink_connection
