@@ -46,6 +46,8 @@ class FlightMode(str, Enum):
     """Enum representing flight modes"""
 
     STABILIZE = "STABILIZE"
+    ALT_HOLD = "ALT_HOLD"
+    LAND = "LAND"
     NONE = "NONE"
 
     @staticmethod
@@ -59,6 +61,7 @@ class FlightMode(str, Enum):
 
 ardupilot_state = {
     "connected": False,
+    "device_connection_string": "",
     "mode": FlightMode.NONE,
     "armed": False,
     "motor_spinning": False,
@@ -100,6 +103,7 @@ async def connect(device_connection_string: str):
     if pixhawk_is_connected():
         await print_all_flight_modes()
         ardupilot_state["connected"] = True
+        ardupilot_state["device_connection_string"] = device_connection_string
     else:
         print("CONNECTION failed!", file=sys.stderr)
 
@@ -200,7 +204,7 @@ async def disarm_copter():
         ardupilot_state["armed"] = False
 
 
-async def run_motors(speed: int):
+async def run_motors(speed: int, channel: int):
     """running motors"""
     global master
 
@@ -212,17 +216,22 @@ async def run_motors(speed: int):
         print("speed should be integer.", file=sys.stderr)
         return
 
+    if not isinstance(channel, int):
+        print("channel should be integer.", file=sys.stderr)
+        return
+
     if speed < 1100 and speed > 1900:
         print("speed should be between 1100 and 1900, both included.", file=sys.stderr)
         return
 
-    master.set_servo(1 + 8, speed)
+    # master.set_servo(1 + 8, speed)
+    master.set_servo(channel, speed)
 
     ardupilot_state["motor_spinning"] = True
     ardupilot_state["motor_speed"] = speed
 
 
-async def stop_motors():
+async def stop_motors(channel: int):
     """stop motors from spinning"""
     global master
 
@@ -230,7 +239,11 @@ async def stop_motors():
         print("Ardupilot not connected.", file=sys.stderr)
         return
 
-    master.set_servo(1 + 8, 0)
+    if not isinstance(channel, int):
+        print("channel should be integer.", file=sys.stderr)
+        return
+
+    master.set_servo(channel, 0)
 
     ardupilot_state["motor_spinning"] = False
     ardupilot_state["motor_speed"] = 0
@@ -246,6 +259,11 @@ async def close_connection():
     master.close()
     master = None
     ardupilot_state["connected"] = False
+    ardupilot_state["device_connection_string"] = ""
+    ardupilot_state["mode"] = FlightMode.NONE
+    ardupilot_state["armed"] = False
+    ardupilot_state["motor_spinning"] = False
+    ardupilot_state["motor_speed"] = 0
 
 
 app = FastAPI(title="app")
@@ -323,13 +341,35 @@ async def handle_websocket_json_messages(message: dict, ws: WebSocket):
             )
             return
 
+        if "channel" not in message:
+            print(
+                "channel property should be part of RUN_MOTOR message type.",
+                file=sys.stderr
+            )
+            return
+
         if not isinstance(message["speed"], int):
             print("speed property should be an integer.", file=sys.stderr)
             return
 
-        await run_motors(message["speed"])
+        if not isinstance(message["channel"], int):
+            print("channel property should be an integer.", file=sys.stderr)
+            return
+
+        await run_motors(message["speed"], message["channel"])
     elif msg_type == WebSocketRecvMsgType.STOP_MOTOR:
-        await stop_motors()
+        if "channel" not in message:
+            print(
+                "channel property should be part of RUN_MOTOR message type.",
+                file=sys.stderr
+            )
+            return
+
+        if not isinstance(message["channel"], int):
+            print("channel property should be an integer.", file=sys.stderr)
+            return
+
+        await stop_motors(message["channel"])
     elif msg_type == WebSocketRecvMsgType.CLOSE_CONNECTION:
         await close_connection()
 

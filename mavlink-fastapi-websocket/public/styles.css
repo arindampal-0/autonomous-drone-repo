@@ -91,6 +91,10 @@ span#arm-status {
     #stop-motor-button {
       color: red;
     }
+
+    #servo-channel {
+      width: 4em;
+    }
   }
 
   #speed-ranges {

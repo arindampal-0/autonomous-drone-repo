@@ -2,7 +2,7 @@ console.log("FastAPI WebSocket server")
 
 /** @typedef { "STATE" | "CONNECT" | "MODE_CHANGE" | "ARM" | "DISARM" | "RUN_MOTOR" | "STOP_MOTOR" | "CLOSE_CONNECTION" } WebSocketSendMsgType */
 
-/** @typedef {{ msg_type: "STATE" } | { msg_type: "CONNECT", device_connection_string: string } | { msg_type: "MODE_CHANGE", mode: FlightMode } | { msg_type: "ARM" } | { msg_type: "DISARM" } | { msg_type: "RUN_MOTOR", speed: number } | { msg_type: "STOP_MOTOR" } | { msg_type: "CLOSE_CONNECTION" }} WebSocketSendMsg */
+/** @typedef {{ msg_type: "STATE" } | { msg_type: "CONNECT", device_connection_string: string } | { msg_type: "MODE_CHANGE", mode: FlightMode } | { msg_type: "ARM" } | { msg_type: "DISARM" } | { msg_type: "RUN_MOTOR", speed: number, channel: number } | { msg_type: "STOP_MOTOR", channel: number } | { msg_type: "CLOSE_CONNECTION" }} WebSocketSendMsg */
 
 const ws = new WebSocket("/ws")
 
@@ -54,14 +54,18 @@ const speedRangeInput = document.getElementById("motor-speed");
 const speedNumberInput = document.getElementById("motor-speed-value");
 // console.log(speedNumberInput);
 
+const servoChannelInput = document.getElementById("servo-channel");
+// console.log(servoChannelInput);
+
 const motorSpinningStatusSpan = document.getElementById("motor-status");
 // console.log(motorSpinningStatusSpan);
 
 /** @typedef {"STABILIZE" | "NONE"} FlightMode */
 
-/** @type { {connected: boolean, mode: FlightMode, armed: boolean, motorSpinning: boolean, motorSpeed: number }} */
+/** @type { {connected: boolean, deviceConnectionString: string, mode: FlightMode, armed: boolean, motorSpinning: boolean, motorSpeed: number }} */
 const ardupilotState = {
     connected: false,
+    deviceConnectionString: "",
     mode: "NONE",
     armed: false,
     motorSpinning: false,
@@ -77,6 +81,7 @@ function updateUIState() {
     }
 
     if (deviceConnectionStrInput instanceof HTMLInputElement) {
+        deviceConnectionStrInput.value = ardupilotState.deviceConnectionString;
         deviceConnectionStrInput.disabled = ardupilotState.connected;
     } else {
         console.error("Could not find input field #device-connection-string-input.");
@@ -111,13 +116,13 @@ function updateUIState() {
 
     // update run motor UI
     if (runMotorButton instanceof HTMLButtonElement) {
-        runMotorButton.disabled = ardupilotState.motorSpinning;
+        // runMotorButton.disabled = ardupilotState.motorSpinning;
     } else {
         console.error("Could not find run-motor-button in dom");
     }
 
     if (stopMotorButton instanceof HTMLButtonElement) {
-        stopMotorButton.disabled = !ardupilotState.motorSpinning;
+        // stopMotorButton.disabled = !ardupilotState.motorSpinning;
     } else {
         console.error("Could not find #stop-motor-button in dom");
     }
@@ -239,10 +244,16 @@ function sendArmMessage(arm) {
 /**
  * Send message to spin motor with a speed
  * @param {number} speed speed of motor (1100 <= speed <= 1800)
+ * @param {number} channel servo channel
  */
-function sendSpinMotorMessage(speed) {
+function sendSpinMotorMessage(speed, channel) {
     if (typeof speed != "number") {
         console.error("'speed' parameter should be a number.");
+        return;
+    }
+
+    if (typeof channel != "number") {
+        console.error("'channel' parameter should be a number.")
         return;
     }
 
@@ -252,7 +263,7 @@ function sendSpinMotorMessage(speed) {
     }
 
     if (ws.OPEN) {
-        ws.send(JSON.stringify({ msg_type: "RUN_MOTOR", speed }));
+        ws.send(JSON.stringify({ msg_type: "RUN_MOTOR", speed, channel }));
     } else {
         console.error("WS connection is closed.");
     }
@@ -260,10 +271,11 @@ function sendSpinMotorMessage(speed) {
 
 /**
  * Send message to stop the motor
+ * @param {number} channel servo channel
  */
-function sendStopMotorMessage() {
+function sendStopMotorMessage(channel) {
     if (ws.OPEN) {
-        ws.send(JSON.stringify({ msg_type: "STOP_MOTOR" }));
+        ws.send(JSON.stringify({ msg_type: "STOP_MOTOR", channel }));
     } else {
         console.error("WS connection is closed.");
     }
@@ -396,11 +408,12 @@ if (runMotorForm instanceof HTMLFormElement) {
             return;
         }
 
-        if (speedNumberInput instanceof HTMLInputElement) {
-            const speed = speedNumberInput.value;
-            sendSpinMotorMessage(speed);
+        if (speedNumberInput instanceof HTMLInputElement && servoChannelInput instanceof HTMLInputElement) {
+            const speed = parseInt(speedNumberInput.value, 10);
+            const channel = parseInt(servoChannelInput.value, 10);
+            sendSpinMotorMessage(speed, channel);
         } else {
-            console.error("Could not find #speed-number-input in the dom.");
+            console.error("Could not find #speed-number-input or #servo-channel in the dom.");
         }
     })
 } else {
@@ -429,7 +442,10 @@ if (stopMotorButton instanceof HTMLButtonElement) {
             return;
         }
 
-        sendStopMotorMessage();
+        if (servoChannelInput instanceof HTMLInputElement) {
+            const channel = parseInt(servoChannelInput.value, 10);
+            sendStopMotorMessage(channel);
+        }
     });
 } else {
     console.error("Could not find #stop-motor-button in the dom.");
@@ -464,8 +480,18 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (typeof message.state.connected != "boolean") {
+    if (typeof message.state.connected !== "boolean") {
         console.error("message.state.connected should be a boolean value.");
+        return;
+    }
+
+    if (!message.state.hasOwnProperty("device_connection_string")) {
+        console.error("message.state should have 'device_connection_string' property.");
+        return;
+    }
+
+    if (typeof message.state.device_connection_string !== "string") {
+        console.error("message.state.device_connection_string should be a string value.");
         return;
     }
 
@@ -474,9 +500,9 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if ( !(message.state.mode == "STABILIZE" || 
-        message.state.mode == "ALT_HOLD" ||
-        message.state.mode == "NONE")) {
+    if ( !(message.state.mode === "STABILIZE" || 
+        message.state.mode === "ALT_HOLD" ||
+        message.state.mode === "NONE")) {
             console.error("message.state.mode is invalid!");
             return;
         }
@@ -486,7 +512,7 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (typeof message.state.armed != "boolean") {
+    if (typeof message.state.armed !== "boolean") {
         console.error("message.state.armed should be a boolean value.");
         return;
     }
@@ -496,7 +522,7 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (typeof message.state.motor_spinning != "boolean") {
+    if (typeof message.state.motor_spinning !== "boolean") {
         console.error("message.state.motor_spinning should be a boolean value.");
         return;
     }
@@ -506,7 +532,7 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (typeof message.state.motor_speed != "number") {
+    if (typeof message.state.motor_speed !== "number") {
         console.error("message.state.motor_speed should be a integer value.");
         return;
     }
@@ -517,6 +543,7 @@ ws.addEventListener("message", function(event) {
     }
 
     ardupilotState.connected = message.state.connected;
+    ardupilotState.deviceConnectionString = message.state.device_connection_string;
     ardupilotState.mode = message.state.mode;
     ardupilotState.armed = message.state.armed;
     ardupilotState.motorSpinning = message.state.motor_spinning;
