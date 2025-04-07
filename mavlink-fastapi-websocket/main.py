@@ -29,6 +29,7 @@ class WebSocketRecvMsgType(str, Enum):
     MODE_CHANGE = "MODE_CHANGE"
     ARM = "ARM"
     DISARM = "DISARM"
+    MOTOR_TEST = "MOTOR_TEST"
     RUN_MOTOR = "RUN_MOTOR"
     STOP_MOTOR = "STOP_MOTOR"
     CLOSE_CONNECTION = "CLOSE_CONNECTION"
@@ -225,6 +226,35 @@ async def disarm_copter(ws: WebSocket):
         ardupilot_state["armed"] = False
 
 
+async def run_motor_tests(ws: WebSocket, throttle_percentage: int = 5):
+    """run motor tests"""
+    global master
+
+    if not master:
+        print("Ardupilot not connected.", file=sys.stderr)
+        return
+
+    if not isinstance(throttle_percentage, int):
+        print("throttle_percentage should be integer.", file=sys.stderr)
+        return
+
+    if throttle_percentage < 0 or throttle_percentage > 100:
+        print("throttle_percentage argument should be between 1 and 100")
+
+    master.mav.command_long_send(master.target_system, master.target_component,
+                                mavutil.mavlink.MAV_CMD_DO_MOTOR_TEST, 0,
+                                1, # Instance
+                                0, # throttle type: MOTOR_TEST_THROTTLE_PERCENT
+                                throttle_percentage, # throttle value
+                                5, # timeout between tests, min:0
+                                4, # motor count, number of motors to test in sequence
+                                0, # motor test order: MOTOR_TEST_ORDER_DEFAULT
+                                0) # EMPTY
+    ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
+    print("ack_msg: ", str(ack_msg))
+    await send_log_message(ws, str(ack_msg))
+
+
 async def run_motors(speed: int, channel: int):
     """running motors"""
     global master
@@ -354,6 +384,23 @@ async def handle_websocket_json_messages(message: dict, ws: WebSocket):
         await arm_copter(ws)
     elif msg_type == WebSocketRecvMsgType.DISARM:
         await disarm_copter(ws)
+    elif msg_type == WebSocketRecvMsgType.MOTOR_TEST:
+        if "throttle_percentage" not in message:
+            print(
+                "throttle_percentage property should be part of MOTOR_TEST message type",
+                file=sys.stderr
+            )
+            return
+
+        if not isinstance(message["throttle_percentage"], int):
+            print(
+                "throttle_percentage property should be an integer.",
+                file=sys.stderr
+            )
+            return
+
+        await run_motor_tests(ws, message["throttle_percentage"])
+
     elif msg_type == WebSocketRecvMsgType.RUN_MOTOR:
         if "speed" not in message:
             print(

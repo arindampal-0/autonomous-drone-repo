@@ -2,7 +2,7 @@ console.log("FastAPI WebSocket server")
 
 /** @typedef { "STATE" | "CONNECT" | "MODE_CHANGE" | "ARM" | "DISARM" | "RUN_MOTOR" | "STOP_MOTOR" | "CLOSE_CONNECTION" } WebSocketSendMsgType */
 
-/** @typedef {{ msg_type: "STATE" } | { msg_type: "CONNECT", device_connection_string: string } | { msg_type: "MODE_CHANGE", mode: FlightMode } | { msg_type: "ARM" } | { msg_type: "DISARM" } | { msg_type: "RUN_MOTOR", speed: number, channel: number } | { msg_type: "STOP_MOTOR", channel: number } | { msg_type: "CLOSE_CONNECTION" }} WebSocketSendMsg */
+/** @typedef {{ msg_type: "STATE" } | { msg_type: "CONNECT", device_connection_string: string } | { msg_type: "MODE_CHANGE", mode: FlightMode } | { msg_type: "ARM" } | { msg_type: "DISARM" } | { msg_type: "MOTOR_TEST", throttle_percentage: number } | { msg_type: "RUN_MOTOR", speed: number, channel: number } | { msg_type: "STOP_MOTOR", channel: number } | { msg_type: "CLOSE_CONNECTION" }} WebSocketSendMsg */
 
 const ws = new WebSocket("/ws")
 
@@ -64,6 +64,12 @@ const disarmButton = document.getElementById("disarm-button");
 const armStatusSpan = document.getElementById("arm-status");
 // console.log(armStatusSpan);
 
+const testMotorForm = document.getElementById("test-motor-form");
+console.log(testMotorForm);
+
+const throttlePercentageInput = document.getElementById("throttle-percentage-input");
+console.log(throttlePercentageInput);
+
 const runMotorForm = document.getElementById("run-motor-form");
 // console.log(runMotorForm);
 
@@ -85,7 +91,7 @@ const servoChannelInput = document.getElementById("servo-channel");
 const motorSpinningStatusSpan = document.getElementById("motor-status");
 // console.log(motorSpinningStatusSpan);
 
-/** @typedef {"STABILIZE" | "NONE"} FlightMode */
+/** @typedef {"STABILIZE" | "ALT_HOLD" | "LAND" | "NONE"} FlightMode */
 
 /** @type { {connected: boolean, deviceConnectionString: string, mode: FlightMode, armed: boolean, motorSpinning: boolean, motorSpeed: number }} */
 const ardupilotState = {
@@ -246,17 +252,35 @@ function sendArmMessage(arm) {
 }
 
 /**
+ * Send Motor test message
+ * @param {number} throttlePercentage 
+ */
+function sendMotorTestMessage(throttlePercentage) {
+    if (typeof throttlePercentage !== "number") {
+        console.error("'throttlePercentage' should be a number.");
+        return;
+    }
+
+    if (throttlePercentage < 0 || throttlePercentage > 100) {
+        console.error("'throttlePercentage' should be between 1 and 100");
+        return;
+    }
+
+    sendWSMessage({ msg_type: "MOTOR_TEST", throttle_percentage: throttlePercentage });
+}
+
+/**
  * Send message to spin motor with a speed
  * @param {number} speed speed of motor (1100 <= speed <= 1800)
  * @param {number} channel servo channel
  */
 function sendSpinMotorMessage(speed, channel) {
-    if (typeof speed != "number") {
+    if (typeof speed !== "number") {
         console.error("'speed' parameter should be a number.");
         return;
     }
 
-    if (typeof channel != "number") {
+    if (typeof channel !== "number") {
         console.error("'channel' parameter should be a number.")
         return;
     }
@@ -364,6 +388,19 @@ if (disarmButton instanceof HTMLButtonElement) {
     });
 } else {
     console.error("Could not find #disarm-button in the dom.");
+}
+
+if (testMotorForm instanceof HTMLFormElement) {
+    testMotorForm.addEventListener("submit", function(event) {
+        event.preventDefault();
+        
+        if (throttlePercentageInput instanceof HTMLInputElement) {
+            const throttlePercentage = parseInt(throttlePercentageInput.value, 10);
+            sendMotorTestMessage(throttlePercentage);
+        } else {
+            console.error("Could not find #throttle-percentage-input in the dom.");
+        }
+    })
 }
 
 if (speedRangeInput instanceof HTMLInputElement) {
