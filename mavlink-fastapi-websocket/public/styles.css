@@ -88,13 +88,14 @@ span#arm-status {
     align-items: start;
     gap: 0.4em;
 
-    #stop-motor-button {
-      color: red;
-    }
 
     #servo-channel {
       width: 4em;
     }
+  }
+
+  #stop-motor-button {
+    color: red;
   }
 
   #speed-ranges {

@@ -6,6 +6,31 @@ console.log("FastAPI WebSocket server")
 
 const ws = new WebSocket("/ws")
 
+/**
+ * Send WS message to server
+ * @param {WebSocketSendMsg} message 
+ */
+function sendWSMessage(message) {
+    if (!message.hasOwnProperty("msg_type")) {
+        console.error("message should have msg_type property.");
+        return;
+    }
+
+    if (!(ws instanceof WebSocket)) {
+        console.error("ws should be instance of WebSocket.");
+        return;
+    }
+
+    // TODO: other checks for WebSocketSendMsg
+
+    if (ws.OPEN) {
+        console.log("SENDING MESSAGE:", message)
+        ws.send(JSON.stringify(message));
+    } else {
+        console.error("WS connection is closed.");
+    }
+}
+
 const refreshStateButton = document.getElementById("refresh-button");
 // console.log(refreshStateButton);
 
@@ -72,6 +97,9 @@ const ardupilotState = {
     motorSpeed: 0
 };
 
+/**
+ * Update UI according to state
+ */
 function updateUIState() {
     // update the device connection UI
     if (deviceConnectionSubmitButton instanceof HTMLButtonElement) {
@@ -153,20 +181,9 @@ updateUIState();
  * send state message
  */
 function sendStateMessage() {
-    if (!(ws instanceof WebSocket)) {
-        console.error("ws should be instance of WebSocket");
-        return;
-    }
-
     /** @type {WebSocketSendMsg} */
     const message = { msg_type: "STATE" }
-
-    if (ws.OPEN) {
-        console.log(message)
-        ws.send(JSON.stringify(message));
-    } else {
-        console.error("WS connection is closed.");
-    }
+    sendWSMessage(message)
 }
 
 /**
@@ -180,7 +197,7 @@ function sendConnectionMessage(connect, deviceConnectionString = "") {
         return;
     }
 
-    if (typeof deviceConnectionString != "string") {
+    if (typeof deviceConnectionString !== "string") {
         console.error("'deviceConnectionString' should be a string.");
         return;
     }
@@ -198,12 +215,7 @@ function sendConnectionMessage(connect, deviceConnectionString = "") {
         message["msg_type"] = "CLOSE_CONNECTION";
     }
 
-    if (ws.OPEN) {
-        console.log(message)
-        ws.send(JSON.stringify(message));
-    } else {
-        console.error("WS connection is closed.");
-    }
+    sendWSMessage(message);
 }
 
 /**
@@ -216,11 +228,7 @@ function sendModeChangeMessage(mode) {
         return;
     }
 
-    if (ws.OPEN) {
-        ws.send(JSON.stringify({ msg_type: "MODE_CHANGE", mode }));
-    } else {
-        console.error("WS connection is closed.");
-    }
+    sendWSMessage({ msg_type: "MODE_CHANGE", mode });
 }
 
 /**
@@ -233,12 +241,8 @@ function sendArmMessage(arm) {
         return;
     }
 
-    if (ws.OPEN) {
-        const message = { msg_type: arm ? "ARM" : "DISARM" }
-        ws.send(JSON.stringify(message));
-    } else {
-        console.error("WS connection is closed.");
-    }
+    const message = { msg_type: arm ? "ARM" : "DISARM" }
+    sendWSMessage(message)
 }
 
 /**
@@ -262,11 +266,7 @@ function sendSpinMotorMessage(speed, channel) {
         return;
     }
 
-    if (ws.OPEN) {
-        ws.send(JSON.stringify({ msg_type: "RUN_MOTOR", speed, channel }));
-    } else {
-        console.error("WS connection is closed.");
-    }
+    sendWSMessage({ msg_type: "RUN_MOTOR", speed, channel });
 }
 
 /**
@@ -274,11 +274,12 @@ function sendSpinMotorMessage(speed, channel) {
  * @param {number} channel servo channel
  */
 function sendStopMotorMessage(channel) {
-    if (ws.OPEN) {
-        ws.send(JSON.stringify({ msg_type: "STOP_MOTOR", channel }));
-    } else {
-        console.error("WS connection is closed.");
+    if (typeof channel != "number") {
+        console.error("'channel' parameter should be a number.")
+        return;
     }
+
+    sendWSMessage({ msg_type: "STOP_MOTOR", channel });
 }
 
 
@@ -437,10 +438,10 @@ if (stopMotorButton instanceof HTMLButtonElement) {
             return;
         }
 
-        if (!ardupilotState.motorSpinning) {
-            console.log("Motor is not spinning!");
-            return;
-        }
+        // if (!ardupilotState.motorSpinning) {
+        //     console.log("Motor is not spinning!");
+        //     return;
+        // }
 
         if (servoChannelInput instanceof HTMLInputElement) {
             const channel = parseInt(servoChannelInput.value, 10);
