@@ -149,6 +149,26 @@ function updateUIState() {
 updateUIState();
 
 /**
+ * send state message
+ */
+function sendStateMessage() {
+    if (!(ws instanceof WebSocket)) {
+        console.error("ws should be instance of WebSocket");
+        return;
+    }
+
+    /** @type {WebSocketSendMsg} */
+    const message = { msg_type: "STATE" }
+
+    if (ws.OPEN) {
+        console.log(message)
+        ws.send(JSON.stringify(message));
+    } else {
+        console.error("WS connection is closed.");
+    }
+}
+
+/**
  * send connection message
  * @param {boolean} connect Want to connect or disconnect
  * @param {string} deviceConnectionString device connection string
@@ -256,14 +276,7 @@ function sendStopMotorMessage() {
 
 if (refreshStateButton instanceof HTMLButtonElement) {
     refreshStateButton.addEventListener("click", function() {
-        /** @type {WebSocketSendMsg} */
-        const message = { msg_type: "STATE" }
-
-        if (ws.OPEN) {
-            ws.send(JSON.stringify(message))
-        } else {
-            console.error("WS connection is closed.");
-        }
+        sendStateMessage();
     });
 } else {
     console.error("Cound not get #refresh-button from dom.");
@@ -410,6 +423,7 @@ if (stopMotorButton instanceof HTMLButtonElement) {
 
 ws.addEventListener("open", function(event) {
     console.log("Websocket connection opened!");
+    sendStateMessage();
 });
 
 ws.addEventListener("message", function(event) {

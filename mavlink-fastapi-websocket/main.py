@@ -133,8 +133,12 @@ async def change_flight_mode(mode: FlightMode):
     master.set_mode(mode_id)
 
     print("Waiting for mode change ACK...")
+    arm_success = False
     for _ in range(5):
         ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=2)
+        if not ack_msg:
+            continue
+
         ack_msg = ack_msg.to_dict()
 
         ## Waiting if acknowledged command is not `set_mode`
@@ -145,7 +149,11 @@ async def change_flight_mode(mode: FlightMode):
         print(mavutil.mavlink.enums["MAV_RESULT"][ack_msg["result"]].description)
         print(f"Mode changed to {mode.name}")
         ardupilot_state["mode"] = mode
+        arm_success = True
         break
+
+    if not arm_success:
+        print("Failed to change flight mode")
 
 
 async def arm_copter():
