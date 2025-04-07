@@ -245,6 +245,7 @@ async def close_connection():
 
     master.close()
     master = None
+    ardupilot_state["connected"] = False
 
 
 app = FastAPI(title="app")

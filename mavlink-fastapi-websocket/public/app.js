@@ -33,6 +33,9 @@ const currentModeSpan = document.getElementById("current-mode");
 const armButton = document.getElementById("arm-button");
 // console.log(armButton);
 
+const disarmButton = document.getElementById("disarm-button");
+// console.log(disarmButton);
+
 const armStatusSpan = document.getElementById("arm-status");
 // console.log(armStatusSpan);
 
@@ -99,16 +102,9 @@ function updateUIState() {
         console.error("Could not find #current-mode.");
     }
 
-    // update armed status UI
-    if (armButton instanceof HTMLButtonElement) {
-        armButton.innerText = ardupilotState.armed ? "Diarm" : "Arm";
-    } else {
-        console.error("Could not find #arm-button.");
-    }
-
     if (armStatusSpan instanceof HTMLSpanElement) {
         armStatusSpan.innerText = ardupilotState.armed ? "Armed" : "Disarmed";
-        armStatusSpan.style.color = ardupilotState.armed ? "green" : "red";
+        armStatusSpan.style.color = ardupilotState.armed ? "red" : "white";
     } else {
         console.error("Could not find #arm-status.");
     }
@@ -333,10 +329,28 @@ if (armButton instanceof HTMLButtonElement) {
             return;
         }
 
-        sendArmMessage(!ardupilotState.armed);
+        sendArmMessage(true);
     });
 } else {
     console.error("Could not find #arm-button in the dom.");
+}
+
+if (disarmButton instanceof HTMLButtonElement) {
+    disarmButton.addEventListener("click", function() {
+        if (!ardupilotState.connected) {
+            console.error("Ardupilot not connected!");
+            return;
+        }
+
+        if (ardupilotState.mode === "NONE") {
+            console.error("Flight mode is not set.");
+            return;
+        }
+
+        sendArmMessage(false);
+    });
+} else {
+    console.error("Could not find #disarm-button in the dom.");
 }
 
 if (speedRangeInput instanceof HTMLInputElement) {
