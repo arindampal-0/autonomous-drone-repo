@@ -465,91 +465,105 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if (message.msg_type != "STATE") {
-        console.error("Only msg_type = 'STATE' is allowed.");
+    if (message.msg_type !== "STATE" && message.msg_type !== "LOG_MESSAGE") {
+        console.error("msg_type should be either 'STATE' or 'LOG_MESSAGE'.");
         return;
     }
 
-    if (!message.hasOwnProperty("state")) {
-        console.error("STATE message type should have 'state' property.")
-        return;
-    }
-
-    if (!message.state.hasOwnProperty("connected")) {
-        console.error("message.state should have 'connected' property.");
-        return;
-    }
-
-    if (typeof message.state.connected !== "boolean") {
-        console.error("message.state.connected should be a boolean value.");
-        return;
-    }
-
-    if (!message.state.hasOwnProperty("device_connection_string")) {
-        console.error("message.state should have 'device_connection_string' property.");
-        return;
-    }
-
-    if (typeof message.state.device_connection_string !== "string") {
-        console.error("message.state.device_connection_string should be a string value.");
-        return;
-    }
-
-    if (!message.state.hasOwnProperty("mode")) {
-        console.error("message.state should have 'mode' property.");
-        return;
-    }
-
-    if ( !(message.state.mode === "STABILIZE" || 
-        message.state.mode === "ALT_HOLD" ||
-        message.state.mode === "NONE")) {
-            console.error("message.state.mode is invalid!");
+    if (message.msg_type === "STATE") {
+        if (!message.hasOwnProperty("state")) {
+            console.error("STATE message type should have 'state' property.")
             return;
         }
-    
-    if (!message.state.hasOwnProperty("armed")) {
-        console.error("message.state should have 'arm' property.");
-        return;
+
+        if (!message.state.hasOwnProperty("connected")) {
+            console.error("message.state should have 'connected' property.");
+            return;
+        }
+
+        if (typeof message.state.connected !== "boolean") {
+            console.error("message.state.connected should be a boolean value.");
+            return;
+        }
+
+        if (!message.state.hasOwnProperty("device_connection_string")) {
+            console.error("message.state should have 'device_connection_string' property.");
+            return;
+        }
+
+        if (typeof message.state.device_connection_string !== "string") {
+            console.error("message.state.device_connection_string should be a string value.");
+            return;
+        }
+
+        if (!message.state.hasOwnProperty("mode")) {
+            console.error("message.state should have 'mode' property.");
+            return;
+        }
+
+        if ( !(message.state.mode === "STABILIZE" || 
+            message.state.mode === "ALT_HOLD" ||
+            message.state.mode === "NONE")) {
+                console.error("message.state.mode is invalid!");
+                return;
+            }
+        
+        if (!message.state.hasOwnProperty("armed")) {
+            console.error("message.state should have 'arm' property.");
+            return;
+        }
+
+        if (typeof message.state.armed !== "boolean") {
+            console.error("message.state.armed should be a boolean value.");
+            return;
+        }
+
+        if (!message.state.hasOwnProperty("motor_spinning")) {
+            console.error("message.state should have 'motor_spinning' property.");
+            return;
+        }
+
+        if (typeof message.state.motor_spinning !== "boolean") {
+            console.error("message.state.motor_spinning should be a boolean value.");
+            return;
+        }
+
+        if (!message.state.hasOwnProperty("motor_speed")) {
+            console.error("message.state should have 'motor_spped' property.");
+            return;
+        }
+
+        if (typeof message.state.motor_speed !== "number") {
+            console.error("message.state.motor_speed should be a integer value.");
+            return;
+        }
+
+        if (message.state.speed < 1100 && message.state.speed > 1900) {
+            console.error("message.state.motor_speed should be between 1100 and 1900.");
+            return;
+        }
+
+        ardupilotState.connected = message.state.connected;
+        ardupilotState.deviceConnectionString = message.state.device_connection_string;
+        ardupilotState.mode = message.state.mode;
+        ardupilotState.armed = message.state.armed;
+        ardupilotState.motorSpinning = message.state.motor_spinning;
+        ardupilotState.motorSpeed = message.state.motor_speed;
+
+        updateUIState();
+    } else if (message.msg_type === "LOG_MESSAGE") {
+        if (!message.hasOwnProperty("message")) {
+            console.error("message should have a 'message' property.")
+            return;
+        }
+
+        // if (typeof message.message !== "string") {
+        //     console.error("message.message property should be a string.");
+        //     return;
+        // }
+
+        console.log("LOG_MESSAGE: ", message.message);
     }
-
-    if (typeof message.state.armed !== "boolean") {
-        console.error("message.state.armed should be a boolean value.");
-        return;
-    }
-
-    if (!message.state.hasOwnProperty("motor_spinning")) {
-        console.error("message.state should have 'motor_spinning' property.");
-        return;
-    }
-
-    if (typeof message.state.motor_spinning !== "boolean") {
-        console.error("message.state.motor_spinning should be a boolean value.");
-        return;
-    }
-
-    if (!message.state.hasOwnProperty("motor_speed")) {
-        console.error("message.state should have 'motor_spped' property.");
-        return;
-    }
-
-    if (typeof message.state.motor_speed !== "number") {
-        console.error("message.state.motor_speed should be a integer value.");
-        return;
-    }
-
-    if (message.state.speed < 1100 && message.state.speed > 1900) {
-        console.error("message.state.motor_speed should be between 1100 and 1900.");
-        return;
-    }
-
-    ardupilotState.connected = message.state.connected;
-    ardupilotState.deviceConnectionString = message.state.device_connection_string;
-    ardupilotState.mode = message.state.mode;
-    ardupilotState.armed = message.state.armed;
-    ardupilotState.motorSpinning = message.state.motor_spinning;
-    ardupilotState.motorSpeed = message.state.motor_speed;
-
-    updateUIState();
 });
 
 ws.addEventListener("error", function(event) {

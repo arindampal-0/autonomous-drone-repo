@@ -18,6 +18,7 @@ class WebSocketSendMsgType(str, Enum):
     """Enum representing WebSocket JSON Send Message Types"""
 
     STATE = "STATE"
+    LOG_MESSAGE = "LOG_MESSAGE"
 
 
 class WebSocketRecvMsgType(str, Enum):
@@ -79,6 +80,16 @@ async def send_state(ws: WebSocket):
         {"msg_type": WebSocketSendMsgType.STATE, "state": ardupilot_state}
     )
 
+async def send_log_message(ws: WebSocket, message):
+    """send log message"""
+    if not isinstance(ws, WebSocket):
+        print("ws should be instance of WebSocket.", file=sys.stderr)
+        return
+
+    await ws.send_json(
+        {"msg_type": "LOG_MESSAGE", "message": message}
+    )
+
 def pixhawk_is_connected() -> bool:
     """check if ardupilot is connected"""
     global master
@@ -94,21 +105,23 @@ def pixhawk_is_connected() -> bool:
 
     return time.time() - start_time < 8
 
-async def connect(device_connection_string: str):
+async def connect(ws: WebSocket, device_connection_string: str):
     """connect to pixhawk"""
     global master
     # connect to pixhawk
     master = mavutil.mavserial(device_connection_string, baud=115200)
 
     if pixhawk_is_connected():
-        await print_all_flight_modes()
+        await print_all_flight_modes(ws)
         ardupilot_state["connected"] = True
         ardupilot_state["device_connection_string"] = device_connection_string
+        await send_log_message(ws, f"{device_connection_string} CONNECTED!")
     else:
         print("CONNECTION failed!", file=sys.stderr)
+        await send_log_message(ws, f"{device_connection_string} CONNECTION failed!")
 
 
-async def print_all_flight_modes():
+async def print_all_flight_modes(ws: WebSocket):
     """print all the available flight modes"""
     global master
 
@@ -117,9 +130,10 @@ async def print_all_flight_modes():
         return
 
     print("Flight Modes: ", list(master.mode_mapping().keys()))
+    await send_log_message(ws, str(list(master.mode_mapping().keys())))
 
 
-async def change_flight_mode(mode: FlightMode):
+async def change_flight_mode(ws: WebSocket, mode: FlightMode):
     """change flight mode"""
     global master
 
@@ -129,6 +143,7 @@ async def change_flight_mode(mode: FlightMode):
 
     if mode.name not in master.mode_mapping():
         print(f"Unknown mode: {mode.name}", file=sys.stderr)
+        await send_log_message(ws, f"Unknown mode: {mode.name}")
         print("Try: ", list(master.mode_mapping().keys()), file=sys.stderr)
         return
 
@@ -152,15 +167,17 @@ async def change_flight_mode(mode: FlightMode):
         ## Print ACK result
         print(mavutil.mavlink.enums["MAV_RESULT"][ack_msg["result"]].description)
         print(f"Mode changed to {mode.name}")
+        await send_log_message(ws, f"Mode changed to {mode.name}")
         ardupilot_state["mode"] = mode
         arm_success = True
         break
 
     if not arm_success:
-        print("Failed to change flight mode")
+        print("Failed to change flight mode.", file=sys.stderr)
+        await send_log_message(ws, "Failed to change flight mode.")
 
 
-async def arm_copter():
+async def arm_copter(ws: WebSocket):
     """arming the copter"""
     global master
 
@@ -177,12 +194,14 @@ async def arm_copter():
 
     if not ack_msg:
         print("Arming failed!", file=sys.stderr)
+        await send_log_message(ws, "Arming failed!")
     else:
         print("Armed!")
+        await send_log_message(ws, "Motor armed.")
         ardupilot_state["armed"] = True
 
 
-async def disarm_copter():
+async def disarm_copter(ws: WebSocket):
     """disarming the copter"""
     global master
 
@@ -199,8 +218,10 @@ async def disarm_copter():
 
     if not ack_msg:
         print("Disarming failed!", file=sys.stderr)
+        await send_log_message(ws, "Disarming failed!")
     else:
         print("Motors disarmed!")
+        await send_log_message(ws, "Motors disarmed.")
         ardupilot_state["armed"] = False
 
 
@@ -309,7 +330,7 @@ async def handle_websocket_json_messages(message: dict, ws: WebSocket):
             )
             return
 
-        await connect(message["device_connection_string"])
+        await connect(ws, message["device_connection_string"])
     elif msg_type == WebSocketRecvMsgType.MODE_CHANGE:
         if "mode" not in message:
             print(
@@ -328,11 +349,11 @@ async def handle_websocket_json_messages(message: dict, ws: WebSocket):
             print(f"'{message['mode']} is an invalid flight mode.", file=sys.stderr)
             return
 
-        await change_flight_mode(mode)
+        await change_flight_mode(ws, mode)
     elif msg_type == WebSocketRecvMsgType.ARM:
-        await arm_copter()
+        await arm_copter(ws)
     elif msg_type == WebSocketRecvMsgType.DISARM:
-        await disarm_copter()
+        await disarm_copter(ws)
     elif msg_type == WebSocketRecvMsgType.RUN_MOTOR:
         if "speed" not in message:
             print(
