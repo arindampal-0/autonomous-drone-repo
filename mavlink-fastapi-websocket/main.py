@@ -168,10 +168,14 @@ async def arm_copter():
     print("Arming motors.")
 
     print("Waiting for the vehicle to arm...")
-    master.motors_armed_wait()
-    print("Armed!")
+    ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
+    print("ack_msg: ", ack_msg)
 
-    ardupilot_state["armed"] = True
+    if not ack_msg:
+        print("Arming failed!", file=sys.stderr)
+    else:
+        print("Armed!")
+        ardupilot_state["armed"] = True
 
 
 async def disarm_copter():
@@ -186,10 +190,14 @@ async def disarm_copter():
     print("Disarming motors.")
 
     print("Waiting for the vehicle to disarm...")
-    master.motors_disarmed_wait()
-    print("Motors disarmed!")
+    ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
+    print("ack_msg: ", ack_msg)
 
-    ardupilot_state["armed"] = False
+    if not ack_msg:
+        print("Disarming failed!", file=sys.stderr)
+    else:
+        print("Motors disarmed!")
+        ardupilot_state["armed"] = False
 
 
 async def run_motors(speed: int):
