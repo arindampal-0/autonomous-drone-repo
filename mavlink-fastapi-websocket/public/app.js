@@ -178,6 +178,7 @@ function sendConnectionMessage(connect, deviceConnectionString = "") {
     }
 
     if (ws.OPEN) {
+        console.log(message)
         ws.send(JSON.stringify(message));
     } else {
         console.error("WS connection is closed.");
@@ -272,7 +273,7 @@ if (deviceConnectionForm instanceof HTMLFormElement) {
     deviceConnectionForm.addEventListener("submit", function(event) {
         event.preventDefault();
 
-        if (ardupilotState.connected) {
+        if (!ardupilotState.connected) {
             if (deviceConnectionStrInput instanceof HTMLInputElement) {
                 const deviceConnectionString = deviceConnectionStrInput.value;
                 sendConnectionMessage(true, deviceConnectionString);
