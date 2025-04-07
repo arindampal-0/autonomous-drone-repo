@@ -4,6 +4,7 @@ from typing import Union
 
 import sys
 from enum import Enum
+import time
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
@@ -75,21 +76,43 @@ async def send_state(ws: WebSocket):
         {"msg_type": WebSocketSendMsgType.STATE, "state": ardupilot_state}
     )
 
+def pixhawk_is_connected() -> bool:
+    """check if ardupilot is connected"""
+    global master
+
+    if not master:
+        print("Ardupilot not connected.", file=sys.stderr)
+        return False
+
+    start_time = time.time()
+
+    # make sure connection is valid
+    master.wait_heartbeat(blocking=True, timeout=10)
+
+    return time.time() - start_time < 8
 
 async def connect(device_connection_string: str):
     """connect to pixhawk"""
-    if not isinstance(ws, WebSocket):
-        print("ws should be instance of WebSocket.", file=sys.stderr)
-        return
-
     global master
     # connect to pixhawk
     master = mavutil.mavserial(device_connection_string, baud=115200)
 
-    # make sure connection is valid
-    master.wait_heartbeat()
+    if pixhawk_is_connected():
+        await print_all_flight_modes()
+        ardupilot_state["connected"] = True
+    else:
+        print("CONNECTION failed!", file=sys.stderr)
 
-    ardupilot_state["connected"] = True
+
+async def print_all_flight_modes():
+    """print all the available flight modes"""
+    global master
+
+    if not master:
+        print("Ardupilot not connected.", file=sys.stderr)
+        return
+
+    print("Flight Modes: ", list(master.mode_mapping().keys()))
 
 
 async def change_flight_mode(mode: FlightMode):
@@ -226,6 +249,7 @@ def health_route():
 
 async def handle_websocket_json_messages(message: dict, ws: WebSocket):
     """handle WebSocket JSON messages"""
+    print(message)
     if not isinstance(message, dict):
         print("message should be a dictiionary.", file=sys.stderr)
         return

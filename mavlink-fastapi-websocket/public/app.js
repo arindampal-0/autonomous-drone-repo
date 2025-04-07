@@ -446,14 +446,9 @@ ws.addEventListener("message", function(event) {
         return;
     }
 
-    if ( !(message.state.mode == "STATE" || 
-        message.state.mode == "CONNECT" ||
-        message.state.mode == "MODE_CHANGE" ||
-        message.state.mode == "ARM" ||
-        message.state.mode == "DISARM" ||
-        message.state.mode == "RUN_MOTOR" ||
-        message.state.mode == "STOP_MOTOR" ||
-        message.state.mode == "CLOSE_CONNECTION")) {
+    if ( !(message.state.mode == "STABILIZE" || 
+        message.state.mode == "ALT_HOLD" ||
+        message.state.mode == "NONE")) {
             console.error("message.state.mode is invalid!");
             return;
         }
