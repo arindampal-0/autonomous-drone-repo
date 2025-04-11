@@ -9,3 +9,13 @@ Run the container
 ```shell
 docker run -it --rm -v $(pwd):/ros2-dashing ros:dashing-ros-base
 ```
+
+```shell
+sudo apt update
+rosdep update --rosdistro dashing
+rosdep install --from-paths src --ignore-src --rosdistro dashing -r -y
+```
+
+```shell
+colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release
+```
