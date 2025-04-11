@@ -1,0 +1,4 @@
+{
+    "name": "ros2-dashing",
+    "image": "ros:dashing-ros-base"
+}
