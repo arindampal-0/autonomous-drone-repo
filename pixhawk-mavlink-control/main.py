@@ -22,6 +22,7 @@ def print_delay(delay: int):
         time.sleep(1)
     print()
 
+
 def print_available_modes(master: mavutil.mavserial):
     """print available modes"""
     if not isinstance(master, mavutil.mavserial):
@@ -33,10 +34,12 @@ def print_available_modes(master: mavutil.mavserial):
 
 class FlightMode(str, Enum):
     """flight mode"""
+
     STABILIZE = "STABILIZE"
     ALT_HOLD = "ALT_HOLD"
     GUIDED = "GUIDED"
     GUIDED_NOGPS = "GUIDED_NOGPS"
+
 
 def change_mode(master: mavutil.mavserial, mode: FlightMode):
     """change flight mode"""
@@ -55,7 +58,7 @@ def change_mode(master: mavutil.mavserial, mode: FlightMode):
 
     ## Get mode ID
     mode_id = master.mode_mapping()[mode.value]
-    master.set_mode(mode_id) # TODO: use long_command_send
+    master.set_mode(mode_id)  # TODO: use long_command_send
 
     print("Waiting for mode change ACK...")
     # while True:
@@ -77,15 +80,26 @@ def change_mode(master: mavutil.mavserial, mode: FlightMode):
 
     print(f"Mode changed to {mode}")
 
+
 def arm(master):
     """arm the motors"""
     if not isinstance(master, mavutil.mavserial):
         print("'master' should be instance of 'mavutil.mavserial'.", file=sys.stderr)
         return
 
-    master.mav.command_long_send(master.target_system, master.target_component,
-                                 mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
-                                 1, 0, 0, 0, 0, 0, 0)
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    )
     print("Arming motors...")
 
     # print("Waiting for the vehicle to arm...")
@@ -99,20 +113,32 @@ def arm(master):
     # else:
     #     print("Armed!")
 
+
 def disarm(master):
     """disarm the motors"""
     if not isinstance(master, mavutil.mavserial):
         print("'master' should be instance of 'mavutil.mavserial'.", file=sys.stderr)
         return
 
-    master.mav.command_long_send(master.target_system, master.target_component,
-                                 mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
-                                 0, 0, 0, 0, 0, 0, 0)
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    )
     print("Disarming motors...")
 
     # print("Waiting for the vehicle to arm...")
     ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
     print("ack_msg: ", ack_msg)
+
 
 def takeoff(master: mavutil.mavserial, altitude: int):
     """takeoff"""
@@ -124,34 +150,49 @@ def takeoff(master: mavutil.mavserial, altitude: int):
         print("'altitude', should be instance of 'int'.", file=sys.stderr)
         return
 
-    master.mav.command_long_send(master.target_system, master.target_component,
-                                 mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0,
-                                 0, 0, 0, 0, 0, 0, altitude)
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        altitude,
+    )
 
     ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
     print("ack_msg: ", ack_msg)
 
+
 class SpeedType(int, Enum):
     """
-        SPEED_TYPE
+    SPEED_TYPE
 
-        https://mavlink.io/en/messages/common.html#SPEED_TYPE
+    https://mavlink.io/en/messages/common.html#SPEED_TYPE
     """
+
     SPEED_TYPE_AIRSPEED = 0
     SPEED_TYPE_GROUNDSPEED = 1
     SPEED_TYPE_CLIMB_SPEED = 2
     SPEED_TYPE_DESCENT_SPEED = 3
 
-def change_action_speed(master: mavutil.mavserial, speed_type: SpeedType, speed: int = -1):
+
+def change_action_speed(
+    master: mavutil.mavserial, speed_type: SpeedType, speed: int = -1
+):
     """
-        Change Action Speed
+    Change Action Speed
 
-        https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED
+    https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED
 
-        Arguments:
-            - master - ardupilot connection
-            - speed_type - one among four speed types
-            - speed - in m/s, speed > 0, speed = -1 no change, speed = -2 to return to default speed
+    Arguments:
+        - master - ardupilot connection
+        - speed_type - one among four speed types
+        - speed - in m/s, speed > 0, speed = -1 no change, speed = -2 to return to default speed
     """
     if not isinstance(master, mavutil.mavserial):
         print("'master' should be instance of 'mavutil.mavserial'.", file=sys.stderr)
@@ -165,12 +206,72 @@ def change_action_speed(master: mavutil.mavserial, speed_type: SpeedType, speed:
         print("'speed' should be instance of 'int'.", file=sys.stderr)
         return
 
-    master.mav.command_long_send(master.target_system, master.target_component,
-                                 mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED, 0,
-                                 speed_type.value, speed, -1, 0, 0, 0, 0)
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,
+        0,
+        speed_type.value,
+        speed,
+        -1,
+        0,
+        0,
+        0,
+        0,
+    )
 
     ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
     print("ack_msg: ", ack_msg)
+
+
+class RCInputChannel(int, Enum):
+    """RC Input Channel for fundamental tasks"""
+
+    ROLL = 1
+    PITCH = 2
+    THROTTLE = 3
+    YAW = 4
+
+
+def send_rc_pwm(master: mavutil.mavserial, rc_channel: RCInputChannel, pwm: int):
+    """
+    rend RC PWM input
+
+    https://www.ardusub.com/developers/pymavlink.html#send-rc-joystick
+
+    Arguments:
+    - rc_channel - RC Input Channel
+    - pwm - pwm input value (1100 - 1800)
+    """
+    if not isinstance(master, mavutil.mavserial):
+        print(
+            "master parameter should be instance of mavutil.mavserial.", file=sys.stderr
+        )
+        return
+
+    if not isinstance(rc_channel, RCInputChannel):
+        print(
+            "rc_channel parameter should be instance of RCInputChannel.",
+            file=sys.stderr,
+        )
+        return
+
+    if not isinstance(pwm, int):
+        print("pwm parameter should be instance of int.", file=sys.stderr)
+        return
+
+    if pwm < 1100 or pwm > 1800:
+        print("pwm should be in the range 1100 to 1800.", file=sys.stderr)
+        return
+
+    rc_channel_values = [65535 for _ in range(18)]
+    rc_channel_values[rc_channel.value - 1] = pwm
+    master.mav.rc_channels_override_send(
+        master.target_system, master.target_component, *rc_channel_values
+    )
+
+    # ack_msg = master.recv_match(type="COMMAND_ACK", blocking=True, timeout=5)
+    # print("ack_msg: ", ack_msg)
 
 
 def main(args):
@@ -199,28 +300,40 @@ def main(args):
     # make sure the connection is valid
     master.wait_heartbeat()
 
+    menu = [
+        "View ardupilot status (not implemented)",
+        "Change mode",
+        "Arm",
+        "Disarm",
+        "Set input throttle PWM",
+    ]
+
     while True:
         print()
         print("MENU:")
-        print("1. view ardupilot status (not implemented)")
-        print("2. Change mode")
-        print("3. Arm")
-        print("4. Disarm")
-        print("5. Quit")
-        print("Enter your choice (1 - 5): ", end="")
+        for i, menu_item in enumerate(menu):
+            print(f"{i + 1}. {menu_item}")
+        print("(Q/q)uit")
+        print(f"Enter your choice (1 - {len(menu) + 1} or q/Q to quit): ", end="")
+
+        choice = input()
+
+        if choice == "q" or choice == "Q":
+            break
+
         try:
-            choice = int(input())
+            choice_int = int(choice)
         except ValueError:
-            print("Enter a number for choice.")
+            print("Enter a number for choice")
             continue
 
-        if choice < 1 or choice > 5:
-            print("Wrong choice. Try again.")
+        if choice_int < 1 or choice_int > len(menu):
+            print("Wrong choice. Try again.", file=sys.stderr)
             continue
 
-        if choice == 1:
+        if choice_int == 1:
             print("(Not implemented)")
-        elif choice == 2:
+        elif choice_int == 2:
             print("Mode choice:")
             flight_modes = [mode.value for mode in FlightMode]
             for i, mode in enumerate(flight_modes):
@@ -240,12 +353,18 @@ def main(args):
             flight_mode = FlightMode[flight_modes[flight_mode_choice - 1]]
 
             change_mode(master, flight_mode)
-        elif choice == 3:
+        elif choice_int == 3:
             arm(master)
-        elif choice == 4:
+        elif choice_int == 4:
             disarm(master)
-        elif choice == 5:
-            break
+        elif choice_int == 5:
+            try:
+                pwm_value = int(input("Enter PWM value"))
+            except ValueError:
+                print("Enter an integer value for PWM.", file=sys.stderr)
+                continue
+
+            send_rc_pwm(master, RCInputChannel.THROTTLE, pwm_value)
 
     master.close()
     print("Connection closed.")
