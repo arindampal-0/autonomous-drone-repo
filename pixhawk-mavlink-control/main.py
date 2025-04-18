@@ -306,6 +306,7 @@ def main(args):
         "Arm",
         "Disarm",
         "Set input throttle PWM",
+        "Takeoff"
     ]
 
     while True:
@@ -359,12 +360,20 @@ def main(args):
             disarm(master)
         elif choice_int == 5:
             try:
-                pwm_value = int(input("Enter PWM value"))
+                pwm_value = int(input("Enter PWM value: "))
             except ValueError:
                 print("Enter an integer value for PWM.", file=sys.stderr)
                 continue
 
             send_rc_pwm(master, RCInputChannel.THROTTLE, pwm_value)
+        elif choice_int == 6:
+            try:
+                altitude_value = int(input("Enter takeoff altitude: "))
+            except ValueError:
+                print("Enter an integer value for takeoff altitudde.", file=sys.stderr)
+                continue
+
+            takeoff(master, altitude_value)
 
     master.close()
     print("Connection closed.")
